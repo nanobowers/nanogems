@@ -34,6 +34,7 @@ Using rubygems can be extremely slow for lightweight ruby scripts, especially in
 + Communal Ruby installation over a shared network with lots of installed gems
 + Slow filer performance, e.g. cloud storage
 + Only a few gems are used and they fit "standard" patterns.
++ Very slow hardware, e.g. raspberry-pi
 
 nanogems exploits the fact that:
 1. Ultimately we just want to update `$LOAD_PATH` to find our gem code.
@@ -52,6 +53,11 @@ sudo ruby install.rb
 ## Performance
 
 For small numbers of gems loaded or simple gems, performance should be better than rubygems.  If it is not, feel free to use rubygems or submit a fix via a pull-request.
+
+Test setup:
++ Ruby 3.1.2
++ Intel(R) Core(TM) i3-4130 CPU @ 3.40GHz, 
++ GNU/Linux 5.19.6-100.x86_64
 
 ```sh
 ### with rubygems (default)
@@ -82,6 +88,8 @@ Absolute gem version specifiers should work, but relative ones ">=0.a" are not s
 This may not cleanly load all gems, as it takes a lot of liberties for performance reasons.  Many modern gems rely on rubygems being loaded and all of the rubygems `Gem::*` API present.  These are not in scope for nanogems.
 
 If the required files aren't in `#{gemname}-#{version}/lib`, you may be able to patch around it by explicitly using `gem "<other_name>"`
+
+Note that the ruby core team is considering removing `--disable-gems` which would impact the usefulness of this project.  https://bugs.ruby-lang.org/issues/17684
 
 # Attribution
 
