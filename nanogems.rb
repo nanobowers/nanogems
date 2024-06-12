@@ -15,6 +15,13 @@ unless $LOADED_FEATURES.find { |file| file.match(/rubygems/) }
     # Gem::LoadError: Could not find RubyGem sdfsdf (>= 0)
     class LoadError < ::LoadError
     end
+
+    # require 'rubygems/version' references this.
+    module Deprecate
+      def self.skip
+        false
+      end
+    end
   end
 
   # load for rubygems version comparators
@@ -66,7 +73,7 @@ unless $LOADED_FEATURES.find { |file| file.match(/rubygems/) }
             end
           end
         end
-        p name: name, lookup: lookup
+        #p name: name, lookup: lookup
         return lookup[name][0]
       end
 
@@ -88,7 +95,7 @@ unless $LOADED_FEATURES.find { |file| file.match(/rubygems/) }
       def path
         @path ||= begin
           paths = [self.default_path]
-          paths += ENV.fetch("GEM_PATH").split(File::PATH_SEPARATOR)
+          paths += ENV.fetch("GEM_PATH","").split(File::PATH_SEPARATOR)
           paths
         end
       end
@@ -109,16 +116,24 @@ unless $LOADED_FEATURES.find { |file| file.match(/rubygems/) }
         end
       end
 
+      def preprocess_version(original_version)
+        return original_version unless original_version.is_a?(String)
+        version = original_version.clone
+        deleted_chars = version.delete!("<>=~ ") 
+        warn "Not handling version '#{original_version}' with these characters '<>=~ '" if deleted_chars
+        return version
+      end
+
       def activate(name, version = nil)
         gem = if version.nil?
           self.highest_gem(name)
         else
           # TODO: > = ~ version
           # >= 0
-          version.delete!("<>=~ ") if version.is_a?(String)
+          version = self.preprocess_version(version)
+          #version.delete!("<>=~ ") if version.is_a?(String)
           self.gem(name, version)
         end
-        #p gem: gem
         self.loaded_gems.push(File.basename(File.dirname(gem)))
         $:.push(gem)
       end
@@ -134,7 +149,7 @@ unless $LOADED_FEATURES.find { |file| file.match(/rubygems/) }
         else
           # TODO: > = ~ version
           # >= 0
-          version.delete!("<>=~ ") if version.is_a?(String)
+          version = self.preprocess_version(version)
           libdir = self.gem(name, version)
           $:.delete(libdir) if $:.include?(libdir)
         end
@@ -167,12 +182,12 @@ unless $LOADED_FEATURES.find { |file| file.match(/rubygems/) }
     rescue LoadError
       begin
         hackfile = file.gsub(%r|/|,'-')
-        Nanogems.activate(hackfile) rescue nil
+        Nanogems.activate(hackfile) # rescue nil
         __require__(file)
       rescue LoadError
         begin
           hackfile = file.sub(%r|/.*|,'')
-          Nanogems.activate(hackfile) rescue nil
+          Nanogems.activate(hackfile) # rescue nil
           __require__(file)
         rescue LoadError
           Nanogems.path_info
